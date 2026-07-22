@@ -31,7 +31,7 @@ services:
       - key: TELEGRAM_ENABLED
         value: "true"
       - fromGroup: secrets
-    healthCheckPath: /health
+    healthCheckPath: /api/v1/health
     autoDeploy: true
 
   # Signal Generator Background Worker
