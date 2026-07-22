@@ -1,0 +1,87 @@
+# Render.com deployment configuration for XAUUSD Scalping System
+# Deploy as: Web Service (API) + Background Worker (Signal Generator)
+
+services:
+  # Main API Web Service
+  - type: web
+    name: xauusd-api
+    runtime: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python -m src.api.main
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - key: CONFIG_PATH
+        value: config/config.yaml
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_JSON_FORMAT
+        value: "true"
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: 8000
+      - key: TELEGRAM_ENABLED
+        value: "true"
+      - fromGroup: secrets
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Signal Generator Background Worker
+  - type: background
+    name: xauusd-signals
+    runtime: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python src/main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: PYTHONPATH
+        value: /opt/render/project/src
+      - key: CONFIG_PATH
+        value: config/config.yaml
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_JSON_FORMAT
+        value: "true"
+      - key: SIGNAL_CHECK_INTERVAL
+        value: "60"
+      - key: BACKTEST_ON_STARTUP
+        value: "false"
+      - key: TELEGRAM_ENABLED
+        value: "true"
+      - fromGroup: secrets
+    autoDeploy: true
+
+# Secret group for sensitive configuration
+secretGroups:
+  - name: secrets
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        description: Telegram Bot Token from BotFather
+      - key: TELEGRAM_CHAT_ID
+        description: Telegram Chat ID for notifications
+      - key: API_KEY
+        description: API authentication key (if auth enabled)
+      - key: DISCORD_WEBHOOK_URL
+        description: Discord webhook URL (optional)
+      - key: NEWS_API_KEY
+        description: News API key for news filter (optional)
+
+# Database (optional, for persistence)
+# databases:
+#   - name: xauusd-db
+#     plan: free
+

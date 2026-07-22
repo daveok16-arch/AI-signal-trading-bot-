@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  # API Web Service - Deploy as Web Service on Render
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m src.api.main
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config/config.yaml
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - LOG_JSON_FORMAT=true
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_WORKERS=4
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Background Worker - Deploy as Background Worker on Render
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m src.main --worker
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config/config.yaml
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - LOG_JSON_FORMAT=true
+    env_file:
+      - .env
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Dashboard (optional - run locally or on separate service)
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run src/dashboard/app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config/config.yaml
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    restart: unless-stopped
+    profiles:
+      - dashboard
+
+  # Training service (run manually)
+  trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python scripts/train.py --period 30d --save-model
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config/config.yaml
+      - ENVIRONMENT=production
+    env_file:
+      - .env
+    profiles:
+      - training
+
+  # Backtesting service (run manually)
+  backtest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python scripts/backtest.py --period 7d --model ensemble --plot
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - CONFIG_PATH=/app/config/config.yaml
+      - ENVIRONMENT=production
+    env_file:
+      - .env
+    profiles:
+      - backtest
+
+networks:
+  default:
+    name: xauusd-network
+
+# Render-specific configuration
+# On Render, deploy:
+# 1. "api" service as a Web Service (port 8000)
+# 2. "worker" service as a Background Worker
+# 3. Add environment variables in Render dashboard
