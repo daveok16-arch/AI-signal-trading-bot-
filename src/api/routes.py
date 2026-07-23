@@ -370,31 +370,39 @@ async def get_latest_signal(
 ):
     """Get latest trading signal."""
     if signal_generator is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
+        raise HTTPException(
+            status_code=503, 
+            detail="Model not loaded. Please train a model first using POST /api/v1/train"
+        )
     
-    # Get latest data
-    df = data_loader.load_ohlcv(interval="1m", period="1d")
-    if df.empty:
-        raise HTTPException(status_code=503, detail="No data available")
-    
-    # Generate features
-    features = feature_engineer.transform(df.tail(100))
-    if features.empty:
-        raise HTTPException(status_code=503, detail="Feature generation failed")
-    
-    # Generate signal
-    signals = signal_generator.generate(features.tail(1), df.tail(1))
-    if not signals:
-        raise HTTPException(status_code=503, detail="Signal generation failed")
-    
-    signal = signals[0]
-    return SignalResponse(
-        timestamp=signal.timestamp,
-        signal=signal.signal_type.name,
-        confidence=signal.confidence,
-        price=signal.price,
-        metadata=signal.metadata,
-    )
+    try:
+        # Get latest data
+        df = data_loader.load_ohlcv(interval="1m", period="1d")
+        if df.empty:
+            raise HTTPException(status_code=503, detail="No data available from Yahoo Finance")
+        
+        # Generate features
+        features = feature_engineer.transform(df.tail(100))
+        if features.empty:
+            raise HTTPException(status_code=503, detail="Feature generation failed")
+        
+        # Generate signal
+        signals = signal_generator.generate(features.tail(1), df.tail(1))
+        if not signals:
+            raise HTTPException(status_code=503, detail="Signal generation failed")
+        
+        signal = signals[0]
+        return SignalResponse(
+            timestamp=signal.timestamp,
+            signal=signal.signal_type.name,
+            confidence=signal.confidence,
+            price=signal.price,
+            metadata=signal.metadata,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating signal: {str(e)}")
 
 
 @router.get("/signals/history", response_model=List[SignalResponse])
@@ -595,11 +603,24 @@ async def get_latest_data(
     data_loader: DataLoader = Depends(get_data_loader),
 ):
     """Get latest market data."""
-    df = data_loader.get_latest_data(interval=interval, n_bars=bars)
-    if df.empty:
-        raise HTTPException(status_code=503, detail="No data available")
-    
-    return df.to_dict('records')
+    try:
+        df = data_loader.get_latest_data(interval=interval, n_bars=bars)
+        if df.empty:
+            raise HTTPException(
+                status_code=503, 
+                detail="No data available from Yahoo Finance. Check symbol or market hours."
+            )
+        return {
+            "data": df.to_dict('records'),
+            "symbol": data_loader.yahoo_client.ticker,
+            "interval": interval,
+            "bars": len(df),
+            "last_update": df.index[-1].isoformat() if not df.empty else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
 
 
 @router.get("/data/ohlcv")
@@ -609,11 +630,26 @@ async def get_ohlcv_data(
     data_loader: DataLoader = Depends(get_data_loader),
 ):
     """Get OHLCV data."""
-    df = data_loader.load_ohlcv(interval=interval, period=period)
-    if df.empty:
-        raise HTTPException(status_code=503, detail="No data available")
-    
-    return df.to_dict('records')
+    try:
+        df = data_loader.load_ohlcv(interval=interval, period=period)
+        if df.empty:
+            raise HTTPException(
+                status_code=503, 
+                detail="No data available from Yahoo Finance. Check symbol or market hours."
+            )
+        return {
+            "data": df.to_dict('records'),
+            "symbol": data_loader.yahoo_client.ticker,
+            "interval": interval,
+            "period": period,
+            "bars": len(df),
+            "start": df.index[0].isoformat() if not df.empty else None,
+            "end": df.index[-1].isoformat() if not df.empty else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
 
 
 @router.get("/features/names")

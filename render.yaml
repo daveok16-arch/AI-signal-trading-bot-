@@ -33,6 +33,7 @@ services:
       - key: TELEGRAM_ENABLED
         value: "false"
       # Data source configuration
+      # GC=F is Gold Futures Continuous Contract (recommended)
       - key: DATA_SYMBOL
         value: "GC=F"
       - key: DATA_INTERVAL
@@ -73,6 +74,7 @@ services:
       - key: TELEGRAM_ENABLED
         value: "false"
       # Data source configuration
+      # GC=F is Gold Futures Continuous Contract (recommended)
       - key: DATA_SYMBOL
         value: "GC=F"
       - key: DATA_INTERVAL

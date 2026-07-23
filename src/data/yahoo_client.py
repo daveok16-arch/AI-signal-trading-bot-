@@ -17,8 +17,10 @@ logger = logging.getLogger(__name__)
 class YahooFinanceClient:
     """Yahoo Finance client for XAUUSD market data."""
     
-    XAUUSD_TICKER = "GC=F"  # Gold futures continuous contract
-    XAUUSD_SPOT = "XAUUSD=X"  # XAU/USD spot
+    # GC=F is Gold Futures Continuous Contract (recommended)
+    XAUUSD_TICKER = "GC=F"
+    # XAUUSD=X is the spot forex pair (may have limited data)
+    XAUUSD_SPOT = "XAUUSD=X"
     
     INTERVALS = {
         '1m': '1m',
