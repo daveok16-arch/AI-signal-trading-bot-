@@ -50,15 +50,16 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy config and scripts (source code not needed since package is installed)
+# Copy source code and config
+COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser config/ ./config/
 COPY --chown=appuser:appuser scripts/ ./scripts/
 
 # Switch to non-root user
 USER appuser
 
-# Environment variables
-ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages \
+# Environment variables - PYTHONPATH must include /app for src module to work
+ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     CONFIG_PATH=/app/config/config.yaml
