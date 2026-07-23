@@ -27,8 +27,10 @@ COPY config/ ./config/
 COPY setup.py .
 COPY requirements.txt .
 
-# Install the package
-RUN pip install --no-cache-dir .
+# Note: We don't pip install the package because:
+# 1. The src/ directory is copied directly
+# 2. PYTHONPATH=/app allows direct module imports
+# 3. Installing would create a conflicting 'api' package in site-packages
 
 # Production stage
 FROM python:3.11-slim
