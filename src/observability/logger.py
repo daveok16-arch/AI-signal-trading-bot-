@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import json
 
-from config import get_config
+from src.config import get_config
 
 
 class JSONFormatter(logging.Formatter):

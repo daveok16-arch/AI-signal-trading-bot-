@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .yahoo_client import YahooFinanceClient, MultiTickerClient
 from .cache import DataCache, get_data_cache
-from config import get_config
+from src.config import get_config
 
 logger = logging.getLogger(__name__)
 

@@ -35,7 +35,7 @@ class SignalGenerator:
         scaler: Any = None,
         feature_names: Optional[List[str]] = None,
     ):
-        from config import get_config
+        from src.config import get_config
         self.config = get_config(config_path)
         self.model = model
         self.scaler = scaler
@@ -84,7 +84,7 @@ class SignalGenerator:
         features: pd.DataFrame,
         ohlcv: pd.DataFrame,
     ) -> List[Signal]:
-        """Generate signals from features."""
+        """Generate signals from src.features."""
         signals = []
         
         for i in range(len(features)):
@@ -301,7 +301,7 @@ class EnsembleSignalGenerator(SignalGenerator):
         scalers: Dict[str, Any] = None,
         feature_names: List[str] = None,
     ):
-        from models.ensemble import EnsembleModel
+        from src.models.ensemble import EnsembleModel
         self.ensemble_model = ensemble_model
         self.scalers = scalers or {}
         
@@ -338,7 +338,7 @@ def create_signal_generator(
     config_path: Optional[str] = None,
 ) -> SignalGenerator:
     """Create signal generator from saved model."""
-    from models.persistence import ModelPersistence
+    from src.models.persistence import ModelPersistence
     
     persistence = ModelPersistence()
     loaded = persistence.load_latest(model_path)
