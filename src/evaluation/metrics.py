@@ -1,7 +1,7 @@
 """Performance metrics for XAUUSD Scalping System."""
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 import logging
 
 logger = logging.getLogger(__name__)

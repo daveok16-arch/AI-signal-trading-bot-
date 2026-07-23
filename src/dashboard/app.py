@@ -11,13 +11,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.config import get_config
-from src.data import DataLoader
-from src.features import FeatureEngineer
-from src.models.persistence import ModelPersistence
-from src.signals.generator import SignalGenerator, SignalType
-from src.backtesting.engine import BacktestEngine
-from src.evaluation.metrics import calculate_metrics
+from config import get_config
+from data import DataLoader
+from features import FeatureEngineer
+from models.persistence import ModelPersistence
+from signals.generator import SignalGenerator, SignalType
+from backtesting.engine import BacktestEngine
+from evaluation.metrics import calculate_metrics
 
 st.set_page_config(
     page_title="XAUUSD AI Scalping System",

@@ -7,7 +7,7 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-from src.config import get_config
+from config import get_config
 from data import DataLoader
 from .price_action import PriceActionFeatures
 from .market_structure import MarketStructureFeatures
@@ -15,7 +15,7 @@ from .volatility import VolatilityFeatures
 from .momentum import MomentumFeatures
 from .volume import VolumeFeatures
 from .selection import FeatureSelector
-from src.data.cache import get_feature_cache
+from data.cache import get_feature_cache
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ class FeatureEngineer:
     
     def _generate_technical_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Generate technical indicator features."""
-        from src.features.technical import TechnicalIndicators
+        from features.technical import TechnicalIndicators
         
         tech = TechnicalIndicators()
         indicators = tech.all_indicators(df, config=self.technical_config)

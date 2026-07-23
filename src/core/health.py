@@ -206,7 +206,7 @@ async def check_telegram() -> ComponentHealth:
 async def check_data_source() -> ComponentHealth:
     """Check data source availability."""
     try:
-        from src.data.yahoo_client import YahooFinanceClient
+        from data.yahoo_client import YahooFinanceClient
         
         client = YahooFinanceClient()
         price = await asyncio.get_event_loop().run_in_executor(None, client.get_current_price)
@@ -235,7 +235,7 @@ async def check_data_source() -> ComponentHealth:
 async def check_model() -> ComponentHealth:
     """Check model availability."""
     try:
-        from src.models.persistence import ModelPersistence
+        from models.persistence import ModelPersistence
         
         persistence = ModelPersistence()
         models = persistence.list_models()

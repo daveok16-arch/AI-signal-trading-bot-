@@ -6,11 +6,11 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-from src.config import get_config
-from src.data import DataLoader
-from src.features import FeatureEngineer
-from src.models.persistence import ModelPersistence
-from src.signals.generator import SignalGenerator, SignalType
+from config import get_config
+from data import DataLoader
+from features import FeatureEngineer
+from models.persistence import ModelPersistence
+from signals.generator import SignalGenerator, SignalType
 
 router = APIRouter()
 
@@ -199,8 +199,8 @@ async def run_backtest(
     background_tasks: BackgroundTasks,
 ):
     """Run backtest."""
-    from src.backtesting.engine import BacktestEngine
-    from src.models.trainer import ModelTrainer
+    from backtesting.engine import BacktestEngine
+    from models.trainer import ModelTrainer
     
     # Load data
     data_loader = DataLoader()
@@ -266,7 +266,7 @@ async def train_model(
     background_tasks: BackgroundTasks,
 ):
     """Train new model."""
-    from src.models.trainer import ModelTrainer
+    from models.trainer import ModelTrainer
     from features import generate_training_data
     
     # Load data
