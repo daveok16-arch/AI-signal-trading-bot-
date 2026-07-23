@@ -8,14 +8,16 @@ services:
     runtime: python
     plan: starter
     buildCommand: |
-      pip install -r requirements.txt
+      pip install --no-cache-dir -r requirements.txt
     startCommand: |
       python -m src.api.main
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
+      # PYTHONPATH must point to /app where source is copied
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: /app
+      # Config path relative to app directory
       - key: CONFIG_PATH
         value: config/config.yaml
       - key: ENVIRONMENT
@@ -23,13 +25,18 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: LOG_JSON_FORMAT
-        value: "true"
+        value: "false"
       - key: API_HOST
         value: 0.0.0.0
       - key: API_PORT
         value: 8000
       - key: TELEGRAM_ENABLED
-        value: "true"
+        value: "false"
+      # Data source configuration
+      - key: DATA_SYMBOL
+        value: "GC=F"
+      - key: DATA_INTERVAL
+        value: "1m"
       - fromGroup: secrets
     healthCheckPath: /api/v1/health
     autoDeploy: true
@@ -40,14 +47,16 @@ services:
     runtime: python
     plan: starter
     buildCommand: |
-      pip install -r requirements.txt
+      pip install --no-cache-dir -r requirements.txt
     startCommand: |
-      python src/main.py
+      python -m src.main --worker
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
+      # PYTHONPATH must point to /app where source is copied
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: /app
+      # Config path relative to app directory
       - key: CONFIG_PATH
         value: config/config.yaml
       - key: ENVIRONMENT
@@ -55,28 +64,35 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: LOG_JSON_FORMAT
-        value: "true"
+        value: "false"
+      # Signal generation interval in seconds
       - key: SIGNAL_CHECK_INTERVAL
         value: "60"
       - key: BACKTEST_ON_STARTUP
         value: "false"
       - key: TELEGRAM_ENABLED
-        value: "true"
+        value: "false"
+      # Data source configuration
+      - key: DATA_SYMBOL
+        value: "GC=F"
+      - key: DATA_INTERVAL
+        value: "1m"
       - fromGroup: secrets
     autoDeploy: true
 
 # Secret group for sensitive configuration
+# Add these in Render Dashboard > Your Service > Environment > Secret Groups
 secretGroups:
   - name: secrets
     envVars:
       - key: TELEGRAM_BOT_TOKEN
-        description: Telegram Bot Token from BotFather
+        description: Telegram Bot Token from BotFather (required for notifications)
       - key: TELEGRAM_CHAT_ID
-        description: Telegram Chat ID for notifications
+        description: Telegram Chat ID for notifications (required for notifications)
       - key: API_KEY
-        description: API authentication key (if auth enabled)
+        description: API authentication key (optional, for securing endpoints)
       - key: DISCORD_WEBHOOK_URL
-        description: Discord webhook URL (optional)
+        description: Discord webhook URL (optional, for additional notifications)
       - key: NEWS_API_KEY
         description: News API key for news filter (optional)
 
@@ -85,3 +101,12 @@ secretGroups:
 #   - name: xauusd-db
 #     plan: free
 
+# IMPORTANT RENDER CONFIGURATION NOTES:
+# =====================================
+# 1. The Docker image copies source to /app/src/
+# 2. PYTHONPATH=/app allows "python -m src.api.main" to work
+# 3. PORT is auto-set by Render (use PORT env var, defaults to 10000)
+# 4. Config files are in /app/config/
+# 5. Models should be mounted to /app/models/ for persistence
+# 6. Logs are written to /app/logs/
+# 7. Data cache goes to /app/data/cache/

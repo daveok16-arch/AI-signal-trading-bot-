@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any, Union
 import logging
 from pathlib import Path
+import time
 
 from .yahoo_client import YahooFinanceClient, MultiTickerClient
 from .cache import DataCache, get_data_cache
@@ -51,7 +52,7 @@ class DataLoader:
         force_refresh: bool = False,
     ) -> pd.DataFrame:
         """
-        Load OHLCV data with caching.
+        Load OHLCV data with caching and fallback.
         
         Args:
             interval: Data interval
@@ -70,36 +71,49 @@ class DataLoader:
         # Generate cache key
         cache_key = self._generate_cache_key(interval, period, start, end)
         
-        # Try cache first
-        if use_cache and not force_refresh:
-            cached = self.cache.get_dataframe(cache_key)
+        # Try cache first (even if use_cache is False, try to get old cache on network failure)
+        cached = self.cache.get_dataframe(cache_key) if use_cache else None
+        if cached is not None and not force_refresh:
+            logger.info(f"Loaded {len(cached)} rows from cache")
+            return cached
+        
+        # Try to fetch from source
+        try:
+            logger.info(f"Fetching {interval} data for {period} from Yahoo Finance")
+            df = self.yahoo_client.fetch(
+                interval=interval,
+                period=period,
+                start=start,
+                end=end,
+                use_cache=False,  # We handle caching ourselves
+            )
+            
+            if df.empty:
+                logger.warning("Yahoo Finance returned empty data")
+                # Fallback to stale cache
+                if cached is not None:
+                    logger.info("Falling back to cached data")
+                    return cached
+                return pd.DataFrame()
+            
+            # Post-process
+            df = self._post_process(df)
+            
+            # Cache result
+            if use_cache and not df.empty:
+                self.cache.set(cache_key, df)
+            
+            logger.info(f"Loaded {len(df)} rows from source")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch data from Yahoo Finance: {e}")
+            # Fallback to cached data on network error
             if cached is not None:
-                logger.info(f"Loaded {len(cached)} rows from cache")
+                logger.warning("Network error - falling back to cached data")
                 return cached
-        
-        # Fetch from source
-        logger.info(f"Fetching {interval} data for {period} from Yahoo Finance")
-        df = self.yahoo_client.fetch(
-            interval=interval,
-            period=period,
-            start=start,
-            end=end,
-            use_cache=use_cache,
-        )
-        
-        if df.empty:
-            logger.warning("No data fetched")
+            logger.error("No cached data available - returning empty DataFrame")
             return pd.DataFrame()
-        
-        # Post-process
-        df = self._post_process(df)
-        
-        # Cache result
-        if use_cache:
-            self.cache.set(cache_key, df)
-        
-        logger.info(f"Loaded {len(df)} rows from source")
-        return df
     
     def _generate_cache_key(
         self,
@@ -199,6 +213,41 @@ class DataLoader:
             '1h': 60, '4h': 240, '1d': 1440, '1wk': 10080, '1mo': 43200,
         }
         return mapping.get(interval, 1)
+    
+    def check_connection(self) -> Dict[str, Any]:
+        """
+        Check connection to Yahoo Finance and return status.
+        
+        Returns:
+            Dictionary with connection status details
+        """
+        result = {
+            "connected": False,
+            "latency_ms": None,
+            "data_available": False,
+            "error": None,
+            "timestamp": datetime.now().isoformat(),
+        }
+        
+        start_time = time.time()
+        try:
+            # Try to fetch minimal data
+            df = self.yahoo_client.fetch(interval="1m", period="1d", use_cache=False)
+            result["latency_ms"] = int((time.time() - start_time) * 1000)
+            
+            if df is not None and not df.empty:
+                result["connected"] = True
+                result["data_available"] = True
+                result["bars"] = len(df)
+                result["last_bar"] = df.index[-1].isoformat() if len(df) > 0 else None
+            else:
+                result["error"] = "No data returned"
+                
+        except Exception as e:
+            result["error"] = str(e)
+            logger.error(f"Connection check failed: {e}")
+        
+        return result
     
     def get_market_context(self) -> Dict[str, Any]:
         """Get current market context."""

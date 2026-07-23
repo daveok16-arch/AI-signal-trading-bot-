@@ -65,11 +65,29 @@ class TrainResponse(BaseModel):
     feature_importance: List[Dict[str, Any]]
 
 
+class SubsystemStatus(BaseModel):
+    name: str
+    status: str  # healthy, degraded, unhealthy, unknown
+    message: str = ""
+    details: Dict[str, Any] = {}
+
+
 class HealthResponse(BaseModel):
     status: str
     timestamp: datetime
     version: str
     models_loaded: List[str]
+
+
+class DiagnosticResponse(BaseModel):
+    status: str
+    timestamp: datetime
+    version: str
+    uptime_seconds: float = 0
+    environment: str = "production"
+    subsystems: Dict[str, SubsystemStatus]
+    environment_variables: Dict[str, str]
+    issues: List[str]
 
 
 # Dependency functions
@@ -116,6 +134,232 @@ async def health_check():
         version="1.0.0",
         models_loaded=models,
     )
+
+
+@router.get("/diagnostic", response_model=DiagnosticResponse)
+async def diagnostic_check():
+    """
+    Comprehensive diagnostic endpoint showing status of all subsystems.
+    
+    Returns detailed information about:
+    - Data connection (Yahoo Finance)
+    - Model loading
+    - Feature generation
+    - Signal generation
+    - Telegram notification configuration
+    - Environment variables
+    """
+    import os
+    import time
+    import logging
+    from pathlib import Path
+    
+    start_time = time.time()
+    subsystems = {}
+    issues = []
+    
+    # Check 1: Configuration
+    try:
+        config = get_config()
+        subsystems["config"] = SubsystemStatus(
+            name="Configuration",
+            status="healthy",
+            message="Configuration loaded successfully",
+            details={"config_path": config.config_path}
+        )
+    except Exception as e:
+        subsystems["config"] = SubsystemStatus(
+            name="Configuration",
+            status="unhealthy",
+            message=f"Failed to load config: {str(e)}"
+        )
+        issues.append(f"Configuration error: {str(e)}")
+    
+    # Check 2: Yahoo Finance Data Connection
+    try:
+        dl = DataLoader()
+        test_df = dl.load_ohlcv(interval="1m", period="1d", use_cache=False)
+        if test_df.empty:
+            subsystems["data"] = SubsystemStatus(
+                name="Yahoo Finance",
+                status="degraded",
+                message="Connected but returned empty data",
+                details={"last_bar": None}
+            )
+            issues.append("Yahoo Finance returned empty data")
+        else:
+            subsystems["data"] = SubsystemStatus(
+                name="Yahoo Finance",
+                status="healthy",
+                message=f"Connected, {len(test_df)} bars loaded",
+                details={
+                    "bars": len(test_df),
+                    "last_bar": test_df.index[-1].isoformat() if not test_df.empty else None,
+                    "symbol": "GC=F"
+                }
+            )
+    except Exception as e:
+        subsystems["data"] = SubsystemStatus(
+            name="Yahoo Finance",
+            status="unhealthy",
+            message=f"Connection failed: {str(e)}",
+            details={"error_type": type(e).__name__}
+        )
+        issues.append(f"Yahoo Finance connection error: {str(e)}")
+    
+    # Check 3: Models
+    try:
+        persistence = ModelPersistence()
+        models = persistence.list_models()
+        model_versions = {}
+        for model_name in models:
+            versions = persistence.list_versions(model_name)
+            model_versions[model_name] = versions
+        
+        if not models:
+            subsystems["models"] = SubsystemStatus(
+                name="AI Models",
+                status="degraded",
+                message="No trained models found. Run training to generate signals.",
+                details={"available_models": [], "model_dir": str(Path("models"))}
+            )
+            issues.append("No trained models - signals cannot be generated")
+        else:
+            subsystems["models"] = SubsystemStatus(
+                name="AI Models",
+                status="healthy",
+                message=f"{len(models)} model type(s) available",
+                details={"models": model_versions}
+            )
+    except Exception as e:
+        subsystems["models"] = SubsystemStatus(
+            name="AI Models",
+            status="unhealthy",
+            message=f"Model loading failed: {str(e)}",
+            details={"error_type": type(e).__name__}
+        )
+        issues.append(f"Model loading error: {str(e)}")
+    
+    # Check 4: Feature Engineering
+    try:
+        fe = FeatureEngineer()
+        feature_names = fe.get_feature_names()
+        subsystems["features"] = SubsystemStatus(
+            name="Feature Engineering",
+            status="healthy",
+            message=f"{len(feature_names)} features configured",
+            details={"feature_count": len(feature_names)}
+        )
+    except Exception as e:
+        subsystems["features"] = SubsystemStatus(
+            name="Feature Engineering",
+            status="unhealthy",
+            message=f"Feature engine failed: {str(e)}",
+            details={"error_type": type(e).__name__}
+        )
+        issues.append(f"Feature engineering error: {str(e)}")
+    
+    # Check 5: Telegram Configuration
+    telegram_status = "unhealthy"
+    telegram_message = "Not configured"
+    telegram_details = {}
+    
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    enabled = os.getenv("TELEGRAM_ENABLED", "false").lower() == "true"
+    
+    if not bot_token and not chat_id:
+        telegram_message = "Telegram not configured (TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID not set)"
+        telegram_details = {"configured": False, "enabled": False}
+    elif not bot_token:
+        telegram_message = "TELEGRAM_BOT_TOKEN not set"
+        telegram_details = {"configured": False, "bot_token_set": False}
+    elif not chat_id:
+        telegram_message = "TELEGRAM_CHAT_ID not set"
+        telegram_details = {"configured": False, "chat_id_set": False}
+    else:
+        telegram_status = "healthy" if enabled else "degraded"
+        telegram_message = "Telegram configured" if enabled else "Telegram configured but disabled"
+        telegram_details = {"configured": True, "enabled": enabled}
+    
+    subsystems["telegram"] = SubsystemStatus(
+        name="Telegram Notifications",
+        status=telegram_status,
+        message=telegram_message,
+        details=telegram_details
+    )
+    
+    if telegram_status == "unhealthy":
+        issues.append("Telegram not configured - notifications disabled")
+    
+    # Check 6: Environment Variables
+    env_vars = {}
+    sensitive_keys = ["TELEGRAM_BOT_TOKEN", "API_KEY", "DISCORD_WEBHOOK_URL", "NEWS_API_KEY"]
+    required_vars = ["PYTHONPATH", "CONFIG_PATH", "PORT"]
+    optional_vars = [
+        "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "TELEGRAM_ENABLED",
+        "API_HOST", "API_PORT", "API_KEY",
+        "DATA_SYMBOL", "DATA_INTERVAL",
+        "LOG_LEVEL", "LOG_JSON_FORMAT"
+    ]
+    
+    for var in required_vars + [v for v in optional_vars if v not in required_vars]:
+        value = os.getenv(var, "")
+        if var in sensitive_keys and value:
+            env_vars[var] = "***" + value[-4:] if len(value) > 4 else "***"
+        else:
+            env_vars[var] = value if value else "(not set)"
+    
+    subsystems["environment"] = SubsystemStatus(
+        name="Environment",
+        status="healthy",
+        message="Environment variables accessible",
+        details={"var_count": len(env_vars)}
+    )
+    
+    # Check 7: File System (directories)
+    dirs_to_check = ["models", "data", "logs", "config"]
+    dir_status = {}
+    for dir_name in dirs_to_check:
+        dir_path = Path("/app") / dir_name
+        exists = dir_path.exists()
+        writable = os.access(dir_path, os.W_OK) if exists else False
+        dir_status[dir_name] = {"exists": exists, "writable": writable}
+    
+    all_dirs_ok = all(d["exists"] for d in dir_status.values())
+    subsystems["filesystem"] = SubsystemStatus(
+        name="File System",
+        status="healthy" if all_dirs_ok else "degraded",
+        message="All directories accessible" if all_dirs_ok else "Some directories missing",
+        details=dir_status
+    )
+    
+    # Determine overall status
+    overall_status = "healthy"
+    if any(s.status == "unhealthy" for s in subsystems.values()):
+        overall_status = "degraded"
+    if subsystems.get("data", SubsystemStatus(name="", status="healthy")).status == "unhealthy":
+        overall_status = "unhealthy"
+    
+    return DiagnosticResponse(
+        status=overall_status,
+        timestamp=datetime.now(),
+        version="1.0.0",
+        uptime_seconds=time.time() - start_time,
+        environment=os.getenv("ENVIRONMENT", "production"),
+        subsystems=subsystems,
+        environment_variables=env_vars,
+        issues=issues
+    )
+
+
+@router.get("/status")
+async def status_check():
+    """Simple status check for load balancers."""
+    return {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @router.get("/signals/latest", response_model=SignalResponse)

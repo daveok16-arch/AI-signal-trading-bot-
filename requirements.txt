@@ -6,6 +6,9 @@ scikit-learn>=1.3.0
 joblib>=1.3.0
 PyYAML>=6.0
 
+# Performance (numba for feature engineering)
+numba>=0.58.0
+
 # Data sources
 yfinance>=0.2.0
 
