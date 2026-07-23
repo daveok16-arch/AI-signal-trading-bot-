@@ -2,7 +2,10 @@
 
 # Data Configuration
 data:
-  symbol: "XAUUSD=X"
+  # Yahoo Finance ticker symbol for Gold
+  # Use GC=F for Gold Futures Continuous Contract (recommended)
+  # Alternative: XAUUSD=X for XAU/USD spot (may have limited data)
+  symbol: "GC=F"
   interval: "1m"
   period: "7d"  # 7 days of 1-minute data from Yahoo Finance
   lookback_days: 7
@@ -416,7 +419,8 @@ risk:
 sources:
   yahoo:
     enabled: true
-    symbol: "XAUUSD=X"
+    # GC=F is Gold Futures Continuous Contract (recommended)
+    symbol: "GC=F"
     interval: "1m"
     period: "7d"
   # Add more sources as needed
