@@ -50,16 +50,15 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code (for config, scripts, etc.)
-COPY --chown=appuser:appuser src/ ./src/
-COPY --chown=appuser:appuser scripts/ ./scripts/
+# Copy config and scripts (source code not needed since package is installed)
 COPY --chown=appuser:appuser config/ ./config/
+COPY --chown=appuser:appuser scripts/ ./scripts/
 
 # Switch to non-root user
 USER appuser
 
 # Environment variables
-ENV PYTHONPATH=/app \
+ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     CONFIG_PATH=/app/config/config.yaml

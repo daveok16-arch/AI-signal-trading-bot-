@@ -65,8 +65,8 @@ setup(
         "console_scripts": [
             "xauusd-train=scripts.train:main",
             "xauusd-backtest=scripts.backtest:main",
-            "xauusd-api=src.api.main:main",
-            "xauusd-dashboard=src.dashboard.app:main",
+            "xauusd-api=api.main:main",
+            "xauusd-dashboard=dashboard.app:main",
         ],
     },
     include_package_data=True,
