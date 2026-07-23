@@ -6,11 +6,11 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-from config import get_config
-from data import DataLoader
-from features import FeatureEngineer
-from models.persistence import ModelPersistence
-from signals.generator import SignalGenerator, SignalType
+from ..config import get_config
+from ..data import DataLoader
+from ..features import FeatureEngineer
+from ..models.persistence import ModelPersistence
+from ..signals.generator import SignalGenerator, SignalType
 
 router = APIRouter()
 
@@ -266,8 +266,8 @@ async def train_model(
     background_tasks: BackgroundTasks,
 ):
     """Train new model."""
-    from models.trainer import ModelTrainer
-    from features import generate_training_data
+    from ..models.trainer import ModelTrainer
+    from ..features import generate_training_data
     
     # Load data
     data_loader = DataLoader()

@@ -6,6 +6,8 @@ from enum import Enum
 from dataclasses import dataclass, field
 import logging
 
+from ..config import get_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,6 @@ class SignalGenerator:
         scaler: Any = None,
         feature_names: Optional[List[str]] = None,
     ):
-        from config import get_config
         self.config = get_config(config_path)
         self.model = model
         self.scaler = scaler
@@ -338,7 +339,7 @@ def create_signal_generator(
     config_path: Optional[str] = None,
 ) -> SignalGenerator:
     """Create signal generator from saved model."""
-    from models.persistence import ModelPersistence
+    from ..models.persistence import ModelPersistence
     
     persistence = ModelPersistence()
     loaded = persistence.load_latest(model_path)

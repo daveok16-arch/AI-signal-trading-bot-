@@ -8,7 +8,7 @@ from enum import Enum
 import warnings
 warnings.filterwarnings('ignore')
 
-from config import get_config
+from ..config import get_config
 
 logger = logging.getLogger(__name__)
 

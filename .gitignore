@@ -23,7 +23,7 @@ data/raw/
 *.joblib
 
 # Models
-models/
+/models/
 *.model
 
 # Logs

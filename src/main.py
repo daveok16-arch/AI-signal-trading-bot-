@@ -6,21 +6,22 @@ import sys
 import signal
 from pathlib import Path
 from typing import Optional
+import os
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.config import load_config_from_env, AppSettings
-from core.lifecycle import Application, LifecycleManager, ApplicationState
-from notifications.telegram import create_telegram_notifier
-from notifications.base import NotificationManager, NotificationConfig
-from data.loader import DataLoader
-from features.engineer import FeatureEngineer
-from models.trainer import ModelTrainer
-from models.persistence import ModelPersistence
-from signals.generator import SignalGenerator, SignalType
-from backtesting.engine import BacktestEngine
-from observability import setup_logging, get_logger
+from src.core.config import load_config_from_env, AppSettings
+from src.core.lifecycle import Application, LifecycleManager, ApplicationState
+from src.notifications.telegram import create_telegram_notifier
+from src.notifications.base import NotificationManager, NotificationConfig
+from src.data.loader import DataLoader
+from src.features.engineer import FeatureEngineer
+from src.models.trainer import ModelTrainer
+from src.models.persistence import ModelPersistence
+from src.signals.generator import SignalGenerator, SignalType
+from src.backtesting.engine import BacktestEngine
+from src.observability import setup_logging, get_logger
 
 logger = get_logger(__name__)
 

@@ -8,16 +8,16 @@ from datetime import datetime
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import get_config
-from data import DataLoader
-from features import FeatureEngineer
-from models.persistence import ModelPersistence
-from signals.generator import SignalGenerator, SignalType
-from backtesting.engine import BacktestEngine
-from evaluation.metrics import calculate_metrics
+from ..config import get_config
+from ..data import DataLoader
+from ..features import FeatureEngineer
+from ..models.persistence import ModelPersistence
+from ..signals.generator import SignalGenerator, SignalType
+from ..backtesting.engine import BacktestEngine
+from ..evaluation.metrics import calculate_metrics
 
 st.set_page_config(
     page_title="XAUUSD AI Scalping System",

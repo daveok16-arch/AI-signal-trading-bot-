@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .yahoo_client import YahooFinanceClient, MultiTickerClient
 from .cache import DataCache, get_data_cache
-from config import get_config
+from ..config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ class DataLoader:
         use_cache: bool = True,
     ) -> tuple:
         """Load OHLCV data with pre-computed features."""
-        from features import FeatureEngineer
+        from ..features import FeatureEngineer
         
         # Load raw data
         df = self.load_ohlcv(interval=interval, period=period, use_cache=use_cache)

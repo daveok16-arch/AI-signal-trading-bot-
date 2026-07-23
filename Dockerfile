@@ -65,7 +65,7 @@ ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages \
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1
 
 # Default command (API server)
-CMD ["python", "-m", "api.main"]
+CMD ["python", "-m", "src.api.main"]

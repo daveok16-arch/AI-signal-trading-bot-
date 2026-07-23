@@ -1,10 +1,24 @@
 """FastAPI application for XAUUSD Scalping System."""
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from config import get_config
+from ..config import get_config
 from .routes import router
+
+
+def get_port() -> int:
+    """Get port from environment variable."""
+    port = os.getenv("PORT")
+    if port:
+        return int(port)
+    return 8000
+
+
+def get_host() -> str:
+    """Get host from environment variable."""
+    return os.getenv("API_HOST", "0.0.0.0")
 
 
 @asynccontextmanager
@@ -14,7 +28,9 @@ async def lifespan(app: FastAPI):
     config = get_config()
     api_config = config.get_section('api')
     
-    print(f"Starting XAUUSD Scalping API on {api_config.get('host', '0.0.0.0')}:{api_config.get('port', 8000)}")
+    host = get_host()
+    port = get_port()
+    print(f"Starting XAUUSD Scalping API on {host}:{port}")
     
     yield
     
@@ -64,8 +80,8 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "src.api.main:app",
-        host=api_config.get('host', '0.0.0.0'),
-        port=api_config.get('port', 8000),
-        workers=api_config.get('workers', 4),
+        host=get_host(),
+        port=get_port(),
+        workers=1,  # Use 1 worker in single process mode
         reload=False,
     )
